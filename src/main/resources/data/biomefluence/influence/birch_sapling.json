@@ -1,0 +1,13 @@
+{
+  "type": "sapling_grow",
+  "predicate": {
+    "type": "matching",
+    "block": "minecraft:birch_sapling"
+  },
+  "influence": [
+    {
+      "biome": "minecraft:birch_forest",
+      "weight": 2
+    }
+  ]
+}

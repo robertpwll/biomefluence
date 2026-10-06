@@ -1,5 +1,6 @@
 package au.lainey.biomefluence.mixin;
 
+import au.lainey.biomefluence.Event;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -15,6 +16,6 @@ public class SaplingBlockMixin {
 
     @Inject(method = "advanceTree", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/grower/TreeGrower;growTree(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkGenerator;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/util/RandomSource;)Z", shift = At.Shift.BEFORE), cancellable = true)
     public void biomefluence$advanceTree(ServerLevel serverLevel, BlockPos blockPos, BlockState blockState, RandomSource randomSource, CallbackInfo ci) {
-
+        Event.SAPLING_GROW.invoke(blockState, randomSource, serverLevel, blockPos);
     }
 }

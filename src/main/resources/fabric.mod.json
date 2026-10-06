@@ -15,9 +15,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      {
-        "value": "au.lainey.biomefluence.Biomefluence"
-      }
+      "au.lainey.biomefluence.Biomefluence"
+    ],
+    "cardinal-components": [
+      "au.lainey.biomefluence.Biomefluence"
     ]
   },
   "mixins": [

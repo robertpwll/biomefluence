@@ -1,23 +1,56 @@
 package au.lainey.biomefluence;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryCodecs;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.biome.Biome;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
-public class WeightedList<T> {
-    private final List<T> list;
+public class WeightedList {
+    public static final Codec<WeightedList> CODEC = RecordCodecBuilder.<ObjectIntPair<ResourceKey<Biome>>>create(builder -> {
+        return builder.group(ResourceKey.codec(Registries.BIOME).fieldOf("biome").forGetter(Pair::left), Codec.INT.fieldOf("weight").forGetter(ObjectIntPair::rightInt)).apply(builder, ObjectIntPair::of);
 
-    private int[] weights = new int[0];
+    }).listOf().xmap(pairs -> {
+        WeightedList weightedList = WeightedList.weightedList();
 
-    public WeightedList(List<T> list) {
+        for (ObjectIntPair<ResourceKey<Biome>> pair : pairs) {
+            weightedList.add(pair.left(), pair.rightInt());
+        }
+
+        return weightedList;
+    }, weightedList -> {
+        List<ObjectIntPair<ResourceKey<Biome>>> list = new ArrayList<>();
+
+        for (int i = 0; i < weightedList.list.size(); i++) {
+            list.add(ObjectIntPair.of(weightedList.list.get(i), weightedList.weights[i]));
+        }
+
+        return list;
+    });
+
+    private final List<ResourceKey<Biome>> list;
+
+    private int[] weights;
+
+    private WeightedList(List<ResourceKey<Biome>> list, int[] weights) {
         this.list = list;
+        this.weights = weights;
     }
 
-    public T get(RandomSource random) {
+    public ResourceKey<Biome> get(RandomSource random) {
         int low = random.nextInt(getSum());
 
         int prev = 0;
@@ -31,13 +64,13 @@ public class WeightedList<T> {
         return list.getFirst();
     }
 
-    public void add(T t, int weight) {
-        if (!list.contains(t)) {
-            list.add(t);
+    public void add(ResourceKey<Biome> biome, int weight) {
+        if (!list.contains(biome)) {
+            list.add(biome);
             weights = Arrays.copyOf(weights, list.size() + 1);
         }
 
-        int i = list.indexOf(t);
+        int i = list.indexOf(biome);
 
         weights[i] += weight;
     }
@@ -46,28 +79,29 @@ public class WeightedList<T> {
         return Arrays.stream(weights).sum();
     }
 
-    public Iterator<ObjectIntPair<T>> iterator() {
-        int size = list.size();
-        return new Iterator<>() {
-            private int i;
+    public ListTag write(HolderLookup.Provider provider) {
+        int i = 0;
 
-            @Override
-            public boolean hasNext() {
-                return i < size;
-            }
+        ListTag tags = new ListTag();
 
-            @Override
-            public ObjectIntPair<T> next() {
-                return ObjectIntPair.of(list.get(i), weights[i++]);
-            }
-        };
+        while (i <= list.size()) {
+            CompoundTag tag = new CompoundTag();
+
+            String name =  provider.lookupOrThrow(Registries.BIOME).getOrThrow(list.get(i)).getRegisteredName();
+            tag.putString("Biome", name);
+            tag.putInt("Weight", weights[i++]);
+
+            tags.add(tag);
+        }
+
+        return tags;
     }
 
     public boolean isEmpty() {
         return list.isEmpty();
     }
 
-    public static <T> WeightedList<T> weightedList() {
-        return new WeightedList<>(new ArrayList<>());
+    public static WeightedList weightedList() {
+        return new WeightedList(new ArrayList<>(), new int[0]);
     }
 }
