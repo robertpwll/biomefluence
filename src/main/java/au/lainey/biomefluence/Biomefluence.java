@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.resources.ResourceLocation;
@@ -56,7 +57,7 @@ public class Biomefluence implements ModInitializer, ChunkComponentInitializer {
 
     @Override
     public void registerChunkComponentFactories(ChunkComponentFactoryRegistry registry) {
-        registry.register(INFLUENCE, InfluenceComponent::new);
+        registry.register(INFLUENCE, chunk -> new InfluenceComponent());
     }
 
     public static ResourceLocation resourceLocation(String path) {

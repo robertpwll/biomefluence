@@ -1,0 +1,17 @@
+{
+  "type": "block_place",
+  "predicate": {
+    "type": "matching",
+    "block": "minecraft:lily_pad"
+  },
+  "influence": [
+    {
+      "biome": "minecraft:swamp",
+      "weight": 2
+    },
+    {
+      "biome": "minecraft:mangrove_swamp",
+      "weight": 5
+    }
+  ]
+}

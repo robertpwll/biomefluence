@@ -4,14 +4,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
-import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.RegistryCodecs;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.biome.Biome;
 
@@ -67,12 +65,22 @@ public class WeightedList {
     public void add(ResourceKey<Biome> biome, int weight) {
         if (!list.contains(biome)) {
             list.add(biome);
-            weights = Arrays.copyOf(weights, list.size() + 1);
+            weights = Arrays.copyOf(weights, weights.length + 1);
         }
 
-        int i = list.indexOf(biome);
+        weights[list.indexOf(biome)] += weight;
+    }
 
-        weights[i] += weight;
+    public void push(ResourceKey<Biome> biome) {
+        if (list.contains(biome)) {
+            int i = list.indexOf(biome);
+            weights[i] += 5;
+
+            if (weights[i] >= 24) {
+                list.remove(biome);
+                weights[i] = 0;
+            }
+        }
     }
 
     public int getSum() {
@@ -80,11 +88,10 @@ public class WeightedList {
     }
 
     public ListTag write(HolderLookup.Provider provider) {
-        int i = 0;
-
         ListTag tags = new ListTag();
 
-        while (i <= list.size()) {
+        int i = 0;
+        while (i < list.size()) {
             CompoundTag tag = new CompoundTag();
 
             String name =  provider.lookupOrThrow(Registries.BIOME).getOrThrow(list.get(i)).getRegisteredName();
@@ -103,5 +110,18 @@ public class WeightedList {
 
     public static WeightedList weightedList() {
         return new WeightedList(new ArrayList<>(), new int[0]);
+    }
+
+    public static WeightedList read(ListTag tags) {
+        WeightedList list = weightedList();
+
+        for (int i = 0; i < tags.size(); i++) {
+            CompoundTag tag = tags.getCompound(i);
+
+            ResourceKey<Biome> biome = ResourceKey.create(Registries.BIOME, ResourceLocation.parse(tag.getString("Biome")));
+            list.add(biome, tag.getInt("Weight"));
+        }
+
+        return list;
     }
 }

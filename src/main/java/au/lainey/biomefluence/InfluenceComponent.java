@@ -4,7 +4,6 @@ import au.lainey.biomefluence.mixin.FillBiomeCommandInvoker;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.registries.Registries;
@@ -16,47 +15,67 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
+import org.ladysnake.cca.api.v3.component.Component;
 
 import java.util.List;
 
-public class InfluenceComponent implements ServerTickingComponent {
+public class InfluenceComponent implements Component {
     private final Long2ObjectMap<WeightedList> map = new Long2ObjectArrayMap<>();
 
-    private final ChunkAccess chunk;
+    @Override
+    public void readFromNbt(CompoundTag tag, HolderLookup.Provider provider) {
+        map.clear();
 
-    public InfluenceComponent(ChunkAccess chunk) {
-        this.chunk = chunk;
+        ListTag tags = tag.getList("Entries", ListTag.TAG_COMPOUND);
+
+        for (int i = 0; i < tags.size(); i++) {
+            CompoundTag entryTag = tags.getCompound(i);
+
+            WeightedList weights = WeightedList.read(entryTag.getList("Weights", ListTag.TAG_COMPOUND));
+            map.put(entryTag.getLong("Long"), weights);
+        }
     }
 
     @Override
-    public void serverTick() {
-        BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
+    public void writeToNbt(CompoundTag tag, HolderLookup.Provider provider) {
+        ListTag tags = new ListTag();
 
-        if (chunk instanceof LevelChunk levelChunk) {
-            ServerLevel level = (ServerLevel) levelChunk.getLevel();
+        for (Long2ObjectMap.Entry<WeightedList> entry : map.long2ObjectEntrySet()) {
+            CompoundTag entryTag = new CompoundTag();
 
-            RandomSource randomSource = level.random;
+            entryTag.putLong("Long", entry.getLongKey());
+            entryTag.put("Weights", entry.getValue().write(provider));
 
-            if (randomSource.nextInt(25) == 0) {
-                for (Long2ObjectMap.Entry<WeightedList> entry : map.long2ObjectEntrySet()) {
-                    WeightedList list = entry.getValue();
+            tags.add(entryTag);
+        }
 
-                    if (!list.isEmpty()) {
-                        long l = entry.getLongKey();
+        tag.put("Entries", tags);
+    }
 
-                        set(blockPos.set(0, 0, 0), level, list.get(randomSource));
-                    }
-                }
+    public void add(BlockPos blockPos, ResourceKey<Biome> biome, int influence) {
+        map.computeIfAbsent(indexOf(blockPos), l -> WeightedList.weightedList()).add(biome, influence);
+    }
+
+    public ResourceKey<Biome> get(BlockPos blockPos, RandomSource random, ServerLevel level) {
+        ResourceKey<Biome> biome = level.getBiome(blockPos).unwrapKey().orElseThrow();
+
+        long l = indexOf(blockPos);
+        if (map.containsKey(l)) {
+            WeightedList list = map.get(l);
+
+            if (!list.isEmpty()) {
+                biome = list.get(random);
+                list.push(biome);
             }
         }
+
+        return biome;
     }
 
     public void set(BlockPos blockPos, ServerLevel level, ResourceKey<Biome> biome) {
         int x = blockPos.getX() >> 4;
-        int y = blockPos.getY() >> 4;
+        int y = blockPos.getZ() >> 4;
 
         ServerChunkCache chunks = level.getChunkSource();
         if (chunks.hasChunk(x, y)) {
@@ -65,41 +84,16 @@ public class InfluenceComponent implements ServerTickingComponent {
             access.fillBiomesFromNoise((i, j, k, sampler) -> {
                 BlockPos quantized = FillBiomeCommandInvoker.biomefluence$quantize(blockPos);
 
-                return
-                        quantized.getX() == QuartPos.toBlock(i) &&
-                        quantized.getY() == QuartPos.toBlock(j) &&
-                        quantized.getZ() == QuartPos.toBlock(k) ? level.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(biome) : access.getNoiseBiome(i, j, k);
+                boolean isX = quantized.getX() == QuartPos.toBlock(i);
+                boolean isY = quantized.getY() == QuartPos.toBlock(j);
+                boolean isZ = quantized.getZ() == QuartPos.toBlock(k);
+                return isX && isY && isZ ? level.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(biome) : access.getNoiseBiome(i, j, k);
             }, chunks.randomState().sampler());
 
             access.setUnsaved(true);
 
             chunks.chunkMap.resendBiomesForChunks(List.of(access));
         }
-    }
-
-    @Override
-    public void readFromNbt(CompoundTag tag, HolderLookup.Provider provider) {
-        map.clear();
-    }
-
-    @Override
-    public void writeToNbt(CompoundTag tag, HolderLookup.Provider provider) {
-        ListTag listTag = new ListTag();
-
-        for (Long2ObjectMap.Entry<WeightedList> entry : map.long2ObjectEntrySet()) {
-            CompoundTag entryTag = new CompoundTag();
-
-            entryTag.putLong("Long", entry.getLongKey());
-            entryTag.put("List", entry.getValue().write(provider));
-
-            listTag.add(entryTag);
-        }
-
-        tag.put("Entries", listTag);
-    }
-
-    public void add(BlockPos blockPos, ResourceKey<Biome> biome, int influence) {
-        map.computeIfAbsent(indexOf(blockPos), l -> WeightedList.weightedList()).add(biome, influence);
     }
 
     public long indexOf(BlockPos blockPos) {

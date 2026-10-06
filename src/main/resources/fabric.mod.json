@@ -29,8 +29,7 @@
     "minecraft": "~1.21.1",
     "java": ">=21",
     "fabric-api": "*",
-    "cardinal-components-base": ">=6.1.3",
-    "cardinal-components-chunk": ">=6.1.3"
+    "cardinal-components-base": ">=6.1.0"
   },
   "custom": {
     "cardinal-components": [

@@ -1,0 +1,13 @@
+{
+  "type": "block_place",
+  "predicate": {
+    "type": "matching",
+    "block": "minecraft:mud"
+  },
+  "influence": [
+    {
+      "biome": "minecraft:mangrove_swamp",
+      "weight": 2
+    }
+  ]
+}
