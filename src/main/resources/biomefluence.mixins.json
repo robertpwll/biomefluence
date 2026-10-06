@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "au.lainey.biomefluence.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "FillBiomeCommandInvoker",
+    "SaplingBlockMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

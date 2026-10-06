@@ -63,6 +63,10 @@ public class WeightedList<T> {
         };
     }
 
+    public boolean isEmpty() {
+        return list.isEmpty();
+    }
+
     public static <T> WeightedList<T> weightedList() {
         return new WeightedList<>(new ArrayList<>());
     }

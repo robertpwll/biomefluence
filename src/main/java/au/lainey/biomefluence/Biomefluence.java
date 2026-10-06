@@ -25,4 +25,5 @@ public class Biomefluence implements ModInitializer, ChunkComponentInitializer {
     public static ResourceLocation resourceLocation(String path) {
         return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
+
 }
