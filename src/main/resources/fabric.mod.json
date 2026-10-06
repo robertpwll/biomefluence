@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "biomefluence",
+  "version": "${version}",
+  "name": "Biomefluence",
+  "description": "actions and blocks set the biome",
+  "authors": [
+    "Robert"
+  ],
+  "contact": {
+    "homepage": "https://lainey.au/",
+    "sources": "https://github.com/robertpwll/biomefluence"
+  },
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "value": "au.lainey.biomefluence.Biomefluence"
+      }
+    ]
+  },
+  "mixins": [
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cardinal-components-base": ">=6.1.3",
+    "cardinal-components-chunk": ">=6.1.3"
+  },
+  "custom": {
+    "cardinal-components": [
+      "biomefluence:influence"
+    ]
+  }
+}
